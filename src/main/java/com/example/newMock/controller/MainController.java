@@ -13,13 +13,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @RestController
 public class MainController {
 
-    private Logger log = LoggerFactory.getLogger(MainController.class);
+    private final Logger log = LoggerFactory.getLogger(MainController.class);
 
-    ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @PostMapping(
             value = "/info/postBalances",
@@ -27,39 +28,42 @@ public class MainController {
             consumes = MediaType.APPLICATION_JSON_VALUE
     )
     public Object postBalances(@RequestBody RequestDTO requestDTO) {
-        try{
+        try {
             String clientId = requestDTO.getClientId();
             char firstDigit = clientId.charAt(0);
+            String currency;
             BigDecimal maxLimit;
-            String RqUID = requestDTO.getRqUID();
 
             if (firstDigit == '8') {
-                maxLimit = new BigDecimal(2000.00);
+                currency = "US";
+                maxLimit = new BigDecimal("2000.00");
+            } else if (firstDigit == '9') {
+                currency = "EU";
+                maxLimit = new BigDecimal("1000.00");
+            } else {
+                currency = "RUB";
+                maxLimit = new BigDecimal("10000.00");
             }
-            else if (firstDigit == '9') {
-                maxLimit = new BigDecimal(1000.00);
-            }
-            else {
-                maxLimit = new BigDecimal(10000.00);
-            }
+
+            BigDecimal balance = maxLimit.multiply(BigDecimal.valueOf(Math.random()))
+                    .setScale(2, RoundingMode.HALF_UP);
 
             ResponseDTO responseDTO = new ResponseDTO();
-
-            responseDTO.setRqUID(RqUID);
+            responseDTO.setRqUID(requestDTO.getRqUID());
             responseDTO.setClientId(clientId);
             responseDTO.setAccount(requestDTO.getAccount());
-            responseDTO.setCurrency("US");
-            responseDTO.setBalance(new BigDecimal(777.00));
+            responseDTO.setCurrency(currency);
+            responseDTO.setBalance(balance);
             responseDTO.setMaxLimit(maxLimit);
 
-            log.error("********** RequestDTO ***********: " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(requestDTO));
-            log.error("********** ResponseDTO ***********: " + mapper.writerWithDefaultPrettyPrinter().writeValueAsString(responseDTO));
+            log.info("RequestDTO: {}", mapper.writeValueAsString(requestDTO));
+            log.info("ResponseDTO: {}", mapper.writeValueAsString(responseDTO));
 
             return responseDTO;
 
-        }catch (Exception e) {
+        } catch (Exception e) {
+            log.error("Error processing request", e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
-
     }
 }

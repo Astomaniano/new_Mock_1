@@ -2,8 +2,6 @@ package com.example.newMock.model;
 
 import lombok.*;
 
-import java.math.BigDecimal;
-
 @Setter
 @Getter
 @AllArgsConstructor
